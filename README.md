@@ -15,6 +15,7 @@ Author:
 -------
 Rainer Kujala, Rainer.Kujala [at sign) aalto.fi
 
+
 Contents:
 ---------
 aux.py
@@ -61,3 +62,7 @@ This package depends on the following packages.
 
 - The SciPy stack: (Numpy, Scipy, Matplotlib)
 - geopy (used for computing distances between coordinates)
+
+City coordinate data (cities_coords_senegal.csv)
+is taken from http://www.tageo.com/index-e-sg-cities-SN.htm
+
