@@ -229,11 +229,18 @@ def _get_filtered_travel_times_between_ctgroups(
     travel_time_as_steps :  bool, optional
         return the number of steps required for traveling instead of any
         time related quantity
+    store_travel_details : bool, optional
 
     Returns
     -------
-    fttimes : tuple of 1D numpy arrays
-        contains the filtered travel times "from 1 to 2" and "from 2 to 1"
+    arr : 2d numpy array
+        If store_travel_details == False:
+            arr consists from collections.Counter objects
+            (storing the counts of each travel time)
+        If store_travel_details == True:
+            arr consists of
+            pandas.DataFrame with fields
+            departure_time, travel_time
 
     See also
     --------
@@ -254,7 +261,10 @@ def _get_filtered_travel_times_between_ctgroups(
     arr = np.zeros((n_groups, n_groups), dtype=object)
     for i in range(n_groups):
         for j in range(n_groups):
-            arr[i, j] = Counter()
+            if store_travel_details:
+                arr[i, j] = []
+            else:
+                arr[i, j] = Counter()
 
     interesting_indices_bool = data['site_id'].isin(all_cell_tower_ids)
     idx_to_group = np.zeros(len(interesting_indices_bool), dtype=int)
@@ -291,14 +301,34 @@ def _get_filtered_travel_times_between_ctgroups(
                         only_transitions=only_transtitions
                     )
                     if t is not None:
-                        # add one instance of t
-                        # to the counter "other to cur"
-                        arr[other_group, cur_group][t] += 1
+                        if not store_travel_details:
+                            # add one instance of t
+                            # to the counter "other to cur"
+                            arr[other_group, cur_group][t] += 1
+                        else:
+                            # store the pair of (travel_time, duration)
+                            timestamp = path['timestamp'].values[0]
+                            departure_id = path.iloc[0]['site_id']
+                            arrival_id = path.iloc[-1]['site_id']
+                            trip_detail_tuple = (timestamp, t, departure_id, arrival_id)
+                            arr[other_group, cur_group].append(trip_detail_tuple)
         else:
             prev_visit_indices = [None] * n_groups
+
         # after visiting:
         last_user = cur_user
         prev_visit_indices[cur_group] = cur_index
+
+    if store_travel_details:
+        # Make lists pandas DataFrames, if departure times and travel durations
+        # are to be stored
+        columns = ("departure_time", "travel_duration", "from_id", "to_id")
+        for i in range(n_groups):
+            for j in range(n_groups):
+                if len(arr[i,j]) > 0:
+                    arr[i, j] = pd.DataFrame(arr[i,j], columns=columns)
+                else:
+                    arr[i, j] = pd.DataFrame(None, columns=columns)
     return arr
 
 
